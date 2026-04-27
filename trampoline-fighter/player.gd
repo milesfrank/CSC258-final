@@ -61,12 +61,16 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	_simulate_tick()
+	# INCORRECRT PARAMETER
+	_simulate_tick(_delta, 1)
 
 
 # Called once a frame. I think we shouldn't use delta because we don't need consistent 
 # movement wrt time, just consistent for frames. 
-func _simulate_tick() -> void:
+func _simulate_tick(frame: int, player_number: int) -> void:
+	# Get appropriate player's state
+	#var player = SynchronizationHandler.state_buffer.get_player_state(frame, player_number)
+	
 	# Simple state machine
 	if state != State.MOVING and current_state_frame_counter < STATE_FRAMES[state]:
 		current_state_frame_counter += 1
