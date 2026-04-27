@@ -69,7 +69,7 @@ func _physics_process(_delta: float) -> void:
 # movement wrt time, just consistent for frames. 
 func _simulate_tick(frame: int, player_number: int) -> void:
 	# Get appropriate player's state
-	#var player = SynchronizationHandler.state_buffer.get_player_state(frame, player_number)
+	var player = SynchronizationHandler.state_buffer.get_player_state(frame, player_number)
 	
 	# Simple state machine
 	if state != State.MOVING and current_state_frame_counter < STATE_FRAMES[state]:
