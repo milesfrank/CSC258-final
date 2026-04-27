@@ -137,6 +137,7 @@ func _simulate_tick(frame: int, player_number: int) -> SynchronizationHandler.pl
 		player_new_frame.vel += GRAVITY
 
 	# Attack collision. Barrier so all characters have calculated movement
+	# FIX TO MAKE IT SO I ONLY ADD PEOPLE I HIT TO MY LIST
 	for player in SynchronizationHandler.num_players:
 		var other_player_frame = SynchronizationHandler.game_states.get_player_state(frame, player)
 		if int_to_state(other_player_frame.state) == State.ATTACKING and int_to_state(other_player_frame.state) != State.DODGING and not other_player_frame.hit_players.has(self ):
