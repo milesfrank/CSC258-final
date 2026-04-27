@@ -16,6 +16,11 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://icon.svg"
 
+[autoload]
+
+Barrier="*uid://c3u3utre6wdyv"
+SynchronizationHandler="*uid://ck0ntc2uhd5jl"
+
 [dotnet]
 
 project/assembly_name="trampoline-fighter"

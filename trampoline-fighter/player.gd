@@ -59,10 +59,23 @@ func _ready() -> void:
 		if player != self and player is Player:
 			other_players.append(player)
 
+	var thread = Thread.new()
+	thread.start(main_loop.bind())
 
+<<<<<<< HEAD
 func _physics_process(_delta: float) -> void:
 	# INCORRECRT PARAMETER
 	_simulate_tick(_delta, 1)
+=======
+
+func main_loop() -> void:
+	while true:
+		_simulate_tick()
+		await get_tree().process_frame
+
+# func _physics_process(_delta: float) -> void:
+	# _simulate_tick()
+>>>>>>> 51542271bc35f62e4ead6bce506cab05045954d9
 
 
 # Called once a frame. I think we shouldn't use delta because we don't need consistent 
