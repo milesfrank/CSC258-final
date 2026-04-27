@@ -120,6 +120,8 @@ func _simulate_tick() -> void:
 				state = State.HIT_STUN
 
 
+	# Barrier.Cycle(1)
+
 	# Trampoline collision. Another barrier		
 
 	# Check if your head hits the bottom of the trampoline
