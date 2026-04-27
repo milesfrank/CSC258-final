@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://xqi6152a08p5"]
+
+[ext_resource type="PackedScene" uid="uid://yt4xs4m1xx4r" path="res://player.tscn" id="1_ig7tw"]
+[ext_resource type="Texture2D" uid="uid://trjxc7py8u0d" path="res://icon.svg" id="2_0xm2m"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h2yge"]
+size = Vector2(128, 128)
+
+[node name="Main" type="Node2D" unique_id=1243444419]
+physics_interpolation_mode = 2
+
+[node name="Player1" parent="." unique_id=1892710959 instance=ExtResource("1_ig7tw")]
+local_player = true
+
+[node name="Player2" parent="." unique_id=313886349 instance=ExtResource("1_ig7tw")]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=522798054]
+zoom = Vector2(0.5, 0.5)
+
+[node name="Platform" type="Sprite2D" parent="." unique_id=1378631428 groups=["trampoline"]]
+position = Vector2(0, 500)
+scale = Vector2(12, 0.2)
+texture = ExtResource("2_0xm2m")
+
+[node name="Area2D" type="Area2D" parent="Platform" unique_id=1585136694 groups=["trampoline"]]
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform/Area2D" unique_id=1045606740 groups=["trampoline"]]
+shape = SubResource("RectangleShape2D_h2yge")
