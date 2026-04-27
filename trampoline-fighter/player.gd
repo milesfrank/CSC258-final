@@ -147,6 +147,8 @@ func _simulate_tick(frame: int, player_number: int) -> SynchronizationHandler.pl
 				next_state = State.HIT_STUN
 
 
+	# Barrier.Cycle(1)
+
 	# Trampoline collision. Another barrier		
 
 	# Check if your head hits the bottom of the trampoline
