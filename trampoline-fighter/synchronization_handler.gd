@@ -1,7 +1,5 @@
 extends Node2D
 
-class_name SynchronizationHandler
-
 
 
 
@@ -11,5 +9,5 @@ func _process(_delta: float) -> void:
 	#Get remote input
 	#Figure out conflicts
 	#Start threads at correct frame
-	
+
 	pass

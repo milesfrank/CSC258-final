@@ -1,12 +1,10 @@
 [gd_scene format=3 uid="uid://xqi6152a08p5"]
 
-[ext_resource type="Script" uid="uid://ck0ntc2uhd5jl" path="res://synchronization_handler.gd" id="1_h2yge"]
 [ext_resource type="PackedScene" uid="uid://yt4xs4m1xx4r" path="res://player.tscn" id="1_ig7tw"]
 [ext_resource type="Texture2D" uid="uid://trjxc7py8u0d" path="res://icon.svg" id="2_0xm2m"]
 
 [node name="Main" type="Node2D" unique_id=1243444419]
 physics_interpolation_mode = 2
-script = ExtResource("1_h2yge")
 
 [node name="Player1" parent="." unique_id=1892710959 instance=ExtResource("1_ig7tw")]
 local_player = true
