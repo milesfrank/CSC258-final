@@ -3,9 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://yt4xs4m1xx4r" path="res://player.tscn" id="1_ig7tw"]
 [ext_resource type="Texture2D" uid="uid://trjxc7py8u0d" path="res://icon.svg" id="2_0xm2m"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_h2yge"]
-size = Vector2(128, 128)
-
 [node name="Main" type="Node2D" unique_id=1243444419]
 physics_interpolation_mode = 2
 
@@ -21,9 +18,3 @@ zoom = Vector2(0.5, 0.5)
 position = Vector2(0, 500)
 scale = Vector2(12, 0.2)
 texture = ExtResource("2_0xm2m")
-
-[node name="Area2D" type="Area2D" parent="Platform" unique_id=1585136694 groups=["trampoline"]]
-collision_layer = 4
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform/Area2D" unique_id=1045606740 groups=["trampoline"]]
-shape = SubResource("RectangleShape2D_h2yge")
