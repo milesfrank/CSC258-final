@@ -18,8 +18,11 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Barrier="*uid://c3u3utre6wdyv"
 SynchronizationHandler="*uid://ck0ntc2uhd5jl"
+
+[debug]
+
+file_logging/enable_file_logging.pc=false
 
 [dotnet]
 
