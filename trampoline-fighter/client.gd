@@ -75,11 +75,12 @@ func _read_local_input() -> Array:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func submit_input(frame: int, inputs: Array) -> void:
+func submit_input(frame: int, inputs: Array[String]) -> void:
 	if inputs.is_empty():
 		return
 	var sender := multiplayer.get_remote_sender_id()
-	print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
+	#print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
+	SynchronizationHandler.remote_input.append([frame, sender, inputs])
 
 
 func connect_to_signal_server() -> void:

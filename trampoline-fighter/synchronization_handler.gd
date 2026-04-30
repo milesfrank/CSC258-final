@@ -9,6 +9,7 @@ var new_frame_barrier: Barrier
 var start_flag: bool = false
 var rollback_start_frames: Array[int] = []
 var ready_players: int = 0;
+var remote_input = []
 
 class player_state:
 	var input: Array[String]
@@ -89,8 +90,14 @@ func _process(_delta: float) -> void:
 		return
 
 	var local_input = get_local_input()
+	print(local_input)
 	save_states.set_input(current_frame, 0, local_input)
 	
+	for player in remote_input:
+		print("[remote] f=%d from=%d input=%s" % [player[0], player[1], player[2]])
+		save_states.set_input(player[0], 1, player[2])
+
+	remote_input.clear()
 	#Start threads at correct frame
 
 	new_frame_barrier.cycle(num_players) # Tell threads to start next frame after main thread has done setup
