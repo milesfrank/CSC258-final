@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://cak4wt4tj8wvc"]
+
+[ext_resource type="Script" uid="uid://f6touy5g2gpf" path="res://server.gd" id="1_62e2m"]
+[ext_resource type="Script" uid="uid://ckl3pcjuobu46" path="res://client.gd" id="2_qtu10"]
+
+[node name="Control" type="Control" unique_id=1759662162]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -107.0
+offset_top = -14.0
+offset_right = -107.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Client" type="Node" parent="." unique_id=108037803]
+script = ExtResource("2_qtu10")
+
+[node name="Server" type="Node" parent="." unique_id=258327998]
+script = ExtResource("1_62e2m")
+
+[node name="Start Client" type="Button" parent="." unique_id=1298609415]
+layout_mode = 0
+offset_left = 374.0
+offset_top = 213.0
+offset_right = 567.0
+offset_bottom = 315.0
+text = "Start Client
+
+"
+
+[node name="Start Server" type="Button" parent="." unique_id=1014158473]
+layout_mode = 0
+offset_left = 782.0
+offset_top = 213.0
+offset_right = 995.0
+offset_bottom = 321.0
+text = "Start Server
+"
+
+[node name="Send Text Data" type="Button" parent="." unique_id=1124735973]
+layout_mode = 0
+offset_left = 342.0
+offset_top = 351.0
+offset_right = 578.0
+offset_bottom = 451.0
+text = "Send Hello Message"
+
+[node name="Button" type="Button" parent="." unique_id=376974146]
+layout_mode = 0
+offset_left = 774.0
+offset_top = 406.0
+offset_right = 1012.0
+offset_bottom = 511.0
+
+[node name="Join Lobby" type="Button" parent="." unique_id=150354103]
+layout_mode = 0
+offset_left = 333.0
+offset_top = 482.0
+offset_right = 569.0
+offset_bottom = 581.0
+text = "Join Lobby"
+
+[connection signal="button_down" from="Start Client" to="Client" method="_on_start_client_button_down"]
+[connection signal="button_down" from="Start Server" to="Server" method="_on_start_server_button_down"]
+[connection signal="button_down" from="Send Text Data" to="Client" method="_on_send_text_data_button_down"]
+[connection signal="button_down" from="Button" to="Server" method="_on_button_button_down"]
+[connection signal="button_down" from="Join Lobby" to="Client" method="_on_join_lobby_button_down"]

@@ -11,14 +11,16 @@ config_version=5
 [application]
 
 config/name="trampoline-fighter"
-run/main_scene="uid://xqi6152a08p5"
+run/main_scene="res://lobby.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://icon.svg"
 
 [autoload]
 
-SynchronizationHandler="*uid://ck0ntc2uhd5jl"
+; SynchronizationHandler disabled while networking lobby is standalone.
+; Re-enable when integrating sim with networking.
+; SynchronizationHandler="*uid://ck0ntc2uhd5jl"
 
 [debug]
 
