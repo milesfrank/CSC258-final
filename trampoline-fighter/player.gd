@@ -72,6 +72,7 @@ func state_to_int(s: State) -> int:
 
 @onready var trampoline = get_tree().get_first_node_in_group("trampoline")
 @onready var trampoline_top = trampoline.position.y - 26
+@onready var starting_position = position
 
 @export var local_player: bool = false
 @export var player_number: int = 0
@@ -81,6 +82,8 @@ func _ready() -> void:
 	for i in range(SynchronizationHandler.num_players):
 		hit_players.append(false)
 
+	SynchronizationHandler.update_positions.connect(_on_update_positions)
+
 	thread.start(main_loop.bind())
 
 func _exit_tree():
@@ -88,12 +91,21 @@ func _exit_tree():
 
 func main_loop() -> void:
 	print("Player ", player_number, " starting main loop")
+
+	SynchronizationHandler.new_frame_barrier.cycle(player_number) # Wait for all players to be ready for new frame
+
+	var first_frame = SynchronizationHandler.player_state.new()
+	first_frame.pos = starting_position
+
+	SynchronizationHandler.save_states.update_player_state(0, player_number, first_frame)
+
 	while true:
 		SynchronizationHandler.new_frame_barrier.cycle(player_number) # Wait for all players to be ready for new frame
 
 		var new_frame = _simulate_tick(SynchronizationHandler.current_frame)
-		# if player_number == 0:
-		# 	print(new_frame.pos)
+		SynchronizationHandler.save_states.update_player_state(SynchronizationHandler.current_frame, player_number, new_frame)
+
+		SynchronizationHandler.new_frame_barrier.cycle(player_number) 
 
 # func _physics_process(_delta: float) -> void:
 	# _simulate_tick()
@@ -119,6 +131,7 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 		elif player_state in [State.ATTACK_LAG, State.DODGE_LAG, State.HIT_STUN]:
 			next_state = State.MOVING
 
+	# print(player_curr_frame.input)
 	handle_input(player_curr_frame.input)
 	
 	if dodge_buffered and next_state == State.MOVING:
@@ -192,11 +205,12 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 func handle_input(inputs: Array[String]) -> void:
 	movement_direction_x = 0
 	for input in inputs:
+		# print(input)
 		match input:
 			"ui_left":
-				movement_direction_x = -1
+				movement_direction_x -= 1
 			"ui_right":
-				movement_direction_x = 1
+				movement_direction_x += 1
 			"ui_up": # Jump
 				jump_buffered = true
 			"ui_down": # Fast fall
@@ -205,3 +219,9 @@ func handle_input(inputs: Array[String]) -> void:
 				attack_buffered = true
 			"dodge":
 				dodge_buffered = true
+
+
+func _on_update_positions(frame: int) -> void:
+	var new_frame_state = SynchronizationHandler.save_states.get_player_state(frame, player_number)
+	# print("Updating position for player ", player_number, " to ", new_frame_state.pos)
+	position = new_frame_state.pos

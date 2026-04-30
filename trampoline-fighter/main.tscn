@@ -12,6 +12,10 @@ local_player = true
 [node name="Player2" parent="." unique_id=313886349 instance=ExtResource("1_ig7tw")]
 player_number = 1
 
+[node name="Player3" parent="." unique_id=209397175 instance=ExtResource("1_ig7tw")]
+position = Vector2(300, 0)
+player_number = 2
+
 [node name="Camera2D" type="Camera2D" parent="." unique_id=522798054]
 zoom = Vector2(0.5, 0.5)
 

@@ -2,8 +2,8 @@ extends Node2D
 
 const MAX_ROLLBACK = 10
 
-var num_players = 2
-var current_frame: int = -1
+var num_players = 3
+var current_frame: int = 0
 var save_states: state_buffer
 var new_frame_barrier: Barrier
 var start_flag: bool = false
@@ -33,40 +33,81 @@ class player_state:
 		current_state_frame_counter = other.current_state_frame_counter
 
 class frame_state:
-	var players: Array[player_state]
+	var players: Array[player_state] = []
 
 	func _init() -> void:
-		players = []
 		for i in range(SynchronizationHandler.num_players):
 			players.append(player_state.new())
 
 class state_buffer:
-	var game_states: Array[frame_state]
-	var barriers: Array[Barrier]
-	var pop_offset: int = 0
+	var game_states: Array[frame_state] = []
+	var barriers: Array[Barrier] = []
 
-	func new_frame() -> void:
-		var new_frame_state = frame_state.new()
-		game_states.append(new_frame_state)
-		if game_states.size() > MAX_ROLLBACK:
-			game_states.pop_front()
-			barriers.pop_front()
-			pop_offset += 1
+	func _init() -> void:
+		for i in range(MAX_ROLLBACK):
+			game_states.append(frame_state.new())
+			barriers.append(Barrier.new(SynchronizationHandler.num_players))
 
 	func get_current_barrier(frame: int) -> Barrier:
-		return barriers[frame - pop_offset]
+		return barriers[frame % MAX_ROLLBACK]
 	
 	func update_player_state(frame: int, player: int, state: player_state) -> void:
-		var frame_state = game_states[frame - pop_offset]
+		var frame_state = game_states[frame % MAX_ROLLBACK]
 		frame_state.players[player] = state
 	
 	func get_player_state(frame: int, player: int) -> player_state:
-		# print("Getting state for frame ", frame, " player ", player)
-		# print(game_states)
-		# # print(game_states[0])
-		# print(game_states[0].players)
-		var frame_state = game_states[frame - pop_offset]
+		var frame_state = game_states[frame % MAX_ROLLBACK]
 		return frame_state.players[player]
+
+	func set_input(frame: int, player: int, input: Array[String]) -> void:
+		var frame_state = game_states[frame % MAX_ROLLBACK]
+		frame_state.players[player].input = input
+
+
+func _enter_tree() -> void:
+	save_states = state_buffer.new()
+	new_frame_barrier = Barrier.new(num_players+1)
+
+	print("New game started with ", num_players, " players")
+
+
+signal update_positions(frame: int)
+
+func _process(_delta: float) -> void:
+	var local_input = get_local_input()
+	save_states.set_input(current_frame, 0, local_input)
+	
+	#Start threads at correct frame
+
+	new_frame_barrier.cycle(num_players) # Tell threads to start next frame after main thread has done setup
+
+	new_frame_barrier.cycle(num_players) # Wait for threads to finish simulating next frame before updating positions
+
+	update_positions.emit(current_frame)
+
+	current_frame += 1
+
+
+func get_local_input() -> Array[String]:
+	var input: Array[String] = []
+	if Input.is_action_pressed("ui_left"):
+		input.append("ui_left")
+	if Input.is_action_pressed("ui_right"):
+		input.append("ui_right")
+
+	if Input.is_action_pressed("ui_up"): # Jump
+		input.append("ui_up")
+	if Input.is_action_pressed("ui_down"): # Fast fall
+		input.append("ui_down")
+	
+	if Input.is_action_just_pressed("attack"):
+		input.append("attack")
+	if Input.is_action_just_pressed("dodge"):
+		input.append("dodge")
+
+	return input
+
+
 
 class Barrier:
 	var count: int = 0
@@ -84,8 +125,6 @@ class Barrier:
 	func cycle(player_id: int) -> void:
 		var s = not local_sense[player_id]
 		local_sense[player_id] = s
-		# print(local_sense)
-		# print("Player ", player_id, " reached barrier with sense ", s)
 		if fai() == n:
 			count = 0
 			sense = s
@@ -103,45 +142,3 @@ class Barrier:
 		count += 1
 		lock.unlock()
 		return count
-
-func _enter_tree() -> void:
-	save_states = state_buffer.new()
-	new_frame_barrier = Barrier.new(num_players+1)
-
-	print("New game started with ", num_players, " players")
-
-
-func _process(_delta: float) -> void:
-	current_frame += 1
-	save_states.new_frame()
-	#Get local input
-	var local_input = get_local_input()
-	var local_player_state = player_state.new()
-	local_player_state.input = local_input
-	save_states.update_player_state(current_frame, 0, local_player_state)
-	#Get remote input
-	#Figure out conflicts
-	save_states.barriers.append(Barrier.new(num_players)) # Should add barriers with the right number of players to correct frames
-	#Start threads at correct frame
-
-	new_frame_barrier.cycle(num_players) 
-
-
-func get_local_input() -> Array[String]:
-	var input: Array[String] = []
-	if Input.is_action_pressed("ui_left"):
-		input.append("ui_left")
-	elif Input.is_action_pressed("ui_right"):
-		input.append("ui_right")
-
-	if Input.is_action_pressed("ui_up"): # Jump
-		input.append("ui_up")
-	if Input.is_action_pressed("ui_down"): # Fast fall
-		input.append("ui_down")
-	
-	if Input.is_action_just_pressed("attack"):
-		input.append("attack")
-	if Input.is_action_just_pressed("dodge"):
-		input.append("dodge")
-
-	return input
