@@ -7,6 +7,7 @@ var current_frame: int = 0
 var save_states: state_buffer
 var new_frame_barrier: Barrier
 var start_flag: bool = false
+var rollback_start_frames: Array[int] = []
 
 class player_state:
 	var input: Array[String]
@@ -22,6 +23,8 @@ class player_state:
 		vel = Vector2.ZERO
 		state = 0
 		hit_players = []
+		for i in range(SynchronizationHandler.num_players):
+			hit_players.append(false)
 		current_state_frame_counter = 0
 
 	func copy_from(other: player_state) -> void:
