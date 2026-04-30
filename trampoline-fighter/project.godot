@@ -18,9 +18,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-; SynchronizationHandler disabled while networking lobby is standalone.
-; Re-enable when integrating sim with networking.
-; SynchronizationHandler="*uid://ck0ntc2uhd5jl"
+SynchronizationHandler="*uid://ck0ntc2uhd5jl"
 
 [debug]
 

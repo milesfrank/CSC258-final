@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://yc2d6jbawvpk"]
+[gd_scene format=3 uid="uid://bp1e8mtbnwmsl"]
 
 [ext_resource type="Script" uid="uid://c23eeg0p46t8i" path="res://lobby.gd" id="1"]
 [ext_resource type="Script" uid="uid://f6touy5g2gpf" path="res://server.gd" id="2"]
-[ext_resource type="Script" uid="uid://ckl3pcjuobu46" path="res://client.gd" id="3"]
+[ext_resource type="Script" path="res://client.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://trjxc7py8u0d" path="res://icon.svg" id="4"]
 
 [node name="Lobby" type="Node2D" unique_id=848793344]

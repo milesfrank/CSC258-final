@@ -12,7 +12,7 @@ enum Message {
 
 const DEFAULT_SIGNAL_URL := "ws://127.0.0.1:8915"
 const ICE_SERVERS := [{ "urls": ["stun:stun.l.google.com:19302"] }]
-const NET_PLAYER_SCENE := preload("res://net_player.tscn")
+const PLAYER_SCENE := preload("res://player.tscn")
 
 var signal_url := DEFAULT_SIGNAL_URL
 
@@ -34,6 +34,9 @@ func _ready() -> void:
 
 func _on_rtc_peer_connected(peer_id: int) -> void:
 	print("rtc peer connected ", peer_id)
+
+	if peers.size() == SynchronizationHandler.num_players - 1:
+		SynchronizationHandler.start_game()
 
 func _on_rtc_peer_disconnected(peer_id: int) -> void:
 	print("rtc peer disconnected ", peer_id)
@@ -162,7 +165,8 @@ func _on_ice_candidate_created(mid: String, index: int, sdp: String, peer_id: in
 func spawn_player(peer_id: int) -> void:
 	if spawned.has(peer_id):
 		return
-	var node := NET_PLAYER_SCENE.instantiate()
+	var node := PLAYER_SCENE.instantiate()
+	node.player_number = spawned.size()
 	node.name = "Peer_%d" % peer_id
 	node.position = spawn_position_for(peer_id)
 	players_parent.add_child(node)

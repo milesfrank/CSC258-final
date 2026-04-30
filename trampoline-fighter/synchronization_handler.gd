@@ -2,12 +2,13 @@ extends Node2D
 
 const MAX_ROLLBACK = 10
 
-var num_players = 3
+var num_players = 2
 var current_frame: int = 0
 var save_states: state_buffer
 var new_frame_barrier: Barrier
 var start_flag: bool = false
 var rollback_start_frames: Array[int] = []
+var ready_players: int = 0;
 
 class player_state:
 	var input: Array[String]
@@ -76,7 +77,17 @@ func _enter_tree() -> void:
 
 signal update_positions(frame: int)
 
+func start_game() -> void:
+	print("Starting game!")
+	start_flag = true
+
 func _process(_delta: float) -> void:
+	if not start_flag:
+		return
+
+	if ready_players < num_players:
+		return
+
 	var local_input = get_local_input()
 	save_states.set_input(current_frame, 0, local_input)
 	
@@ -133,6 +144,7 @@ class Barrier:
 			sense = s
 		else:
 			# var delay = 1
+			# print("Player ", player_id, " waiting at barrier")
 			while sense != s:
 				# if main_thread:
 				# print(delay)

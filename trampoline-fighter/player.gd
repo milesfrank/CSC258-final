@@ -79,12 +79,15 @@ func state_to_int(s: State) -> int:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	print("Player ", player_number, " ready")
 	for i in range(SynchronizationHandler.num_players):
 		hit_players.append(false)
 
 	SynchronizationHandler.update_positions.connect(_on_update_positions)
 
 	thread.start(main_loop.bind())
+
+	SynchronizationHandler.ready_players += 1
 
 func _exit_tree():
 	thread.wait_to_finish()
