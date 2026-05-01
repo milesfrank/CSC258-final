@@ -2,6 +2,8 @@ extends Node2D
 
 class_name Player
 
+signal hit_landed(frame: int, attacker_index: int, victim_index: int)
+
 const MAX_FALL_SPEED: float = 35.0
 const GRAVITY: Vector2 = 1 * Vector2.DOWN
 const MAX_SPEED: float = 17
@@ -180,6 +182,7 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 				player_new_frame.vel = (player_new_frame.pos - other_player_frame.pos).normalized() * KNOCKBACK_SPEED # Knockback
 				other_player_frame.hit_players[player_number] = true # Add to hit players so they can't be hit again until they leave the attack range
 				next_state = State.HIT_STUN
+				call_deferred("emit_signal", "hit_landed", frame, player, player_number)
 
 
 	SynchronizationHandler.save_states.get_current_barrier(frame).cycle(player_number) 

@@ -18,10 +18,23 @@ var signal_url := DEFAULT_SIGNAL_URL
 
 var ws := WebSocketMultiplayerPeer.new()
 var rtc_peer := WebRTCMultiplayerPeer.new()
+var lb := Leaderboard.new()
+
 var peers := {} # peer_id -> WebRTCPeerConnection
 var spawned := {} # peer_id -> Node2D
+var names := {} # peer_id -> display name
+
+
+var confirmed_leaderboard := {} # peer_id -> score
+var temp_leaderboard := {}
+var pending_peers := []
+var attested := {} # (frame, attacker_peer, victim_peer) -> true, dedupes rollback re-sims
+
+
 
 var my_id := 0
+var player_name := "Player"
+var current_frame: int = 0
 
 @onready var players_parent: Node2D = get_node("../Players")
 
@@ -55,6 +68,7 @@ func _process(_delta: float) -> void:
 		var local_input := _read_local_input()
 		submit_input.rpc(SynchronizationHandler.current_frame, local_input)
 
+
 func _read_local_input() -> Array[String]:
 	var input: Array[String] = []
 	if Input.is_action_pressed("ui_left"):
@@ -75,10 +89,94 @@ func _read_local_input() -> Array[String]:
 	return input
 
 
+
+func _on_hit_landed(frame: int, attacker_index: int, victim_index: int) -> void:
+	var attacker_peer := _peer_for_index(attacker_index)
+	var victim_peer := _peer_for_index(victim_index)
+	if attacker_peer == 0 or victim_peer == 0:
+		return
+	if my_id != attacker_peer and my_id != victim_peer:
+		return
+	var key := [frame, attacker_peer, victim_peer]
+	if attested.has(key):
+		return
+	attested[key] = true
+	receive_vote.rpc(frame, attacker_peer, victim_peer)
+
+
+func _peer_for_index(idx: int) -> int:
+	for pid in SynchronizationHandler.id_to_index:
+		if SynchronizationHandler.id_to_index[pid] == idx:
+			return pid
+	return 0
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func receive_vote(frame, attacker_peer, victim_peer):
+	print("[receive_vote] received from %d  frame=%d attacker=%d victim=%d" % [multiplayer.get_remote_sender_id(), frame, attacker_peer, victim_peer])
+	if my_id == attacker_peer or my_id == victim_peer:
+		return
+
+	var key = [attacker_peer, victim_peer]
+	if !lb.pending.has(key):
+		lb.pending[key] = [false, false]
+	
+	var sender := multiplayer.get_remote_sender_id()
+	if sender == attacker_peer:
+		lb.pending[key][0] = true
+	elif sender == victim_peer:
+		lb.pending[key][1] = true
+	else:
+		return
+
+	if lb.pending[key][0] and lb.pending[key][1]:
+		lb.confirmed[attacker_peer] = lb.confirmed.get(attacker_peer, 0) + 1
+		lb.pending.erase(key)
+	
+func request_all_leaderboards():
+	temp_leaderboard = {}
+	for peer_id in lb.confirmed:
+		temp_leaderboard[peer_id] = [lb.confirmed[peer_id]]
+
+	pending_peers = multiplayer.get_peers()
+	rpc("share_leaderboard")
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func receive_leaderboard(data):
+	var sender = multiplayer.get_remote_sender_id()
+	var parsed = JSON.parse_string(data.get_string_from_utf8())
+
+	for peer_id in parsed:
+		var pid_int := int(peer_id)
+		if not temp_leaderboard.has(pid_int):
+			temp_leaderboard[pid_int] = []
+		temp_leaderboard[pid_int].append(parsed[peer_id])
+	
+	pending_peers.erase(sender)
+	if pending_peers.is_empty():
+		finalize_leaderboard()
+
+func finalize_leaderboard():
+	confirmed_leaderboard = {}
+	for peer_id in temp_leaderboard:
+		var scores : Array = temp_leaderboard[peer_id]
+		var total = scores.reduce(func(a, b): return a + b)
+		confirmed_leaderboard[peer_id] = total
+	
+	
+
+@rpc("any_peer", "call_remote", "reliable")
+func share_leaderboard():
+	var caller := multiplayer.get_remote_sender_id()
+	rpc_id(caller, "receive_leaderboard", JSON.stringify(lb.confirmed).to_utf8_buffer())
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func submit_input(frame: int, inputs: Array[String]) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	#print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
+	
 	SynchronizationHandler.remote_input.append([frame, sender, inputs])
 
 
@@ -91,14 +189,18 @@ func handle_message(data: Dictionary) -> void:
 	match int(data["message"]):
 		Message.id:
 			my_id = int(data["id"])
-			print("my id: ", my_id)
+			names[my_id] = player_name
+			print("my id: ", my_id, " (", player_name, ")")
+			DisplayServer.window_set_title("%s (Peer %d)" % [player_name, my_id])
 			rtc_peer.create_mesh(my_id)
 			multiplayer.multiplayer_peer = rtc_peer
 			spawn_player(my_id)
-			send_message({ "id": my_id, "message": Message.lobby })
+			send_message({ "id": my_id, "name": player_name, "message": Message.lobby })
 
 		Message.userConnected:
 			var pid := int(data["id"])
+			var pname := str(data.get("name", "Player"))
+			names[pid] = pname
 			if pid == my_id:
 				return
 			create_peer(pid)
@@ -172,6 +274,7 @@ func spawn_player(peer_id: int) -> void:
 	players_parent.add_child(node)
 	spawned[peer_id] = node
 	SynchronizationHandler.id_to_index[peer_id] = node.player_number
+	node.hit_landed.connect(_on_hit_landed)
 
 	if peers.size() == SynchronizationHandler.num_players - 1:
 		SynchronizationHandler.start_game()

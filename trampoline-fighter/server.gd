@@ -38,20 +38,20 @@ func _process(_delta: float) -> void:
 func handle_message(data: Dictionary) -> void:
 	match int(data["message"]):
 		Message.lobby:
-			print("joining lobby: ", data["id"])
-			join_lobby(int(data["id"]))
+			print("joining lobby: ", data["id"], " as ", data.get("name", "Player"))
+			join_lobby(int(data["id"]), str(data.get("name", "Player")))
 
 		Message.offer, Message.answer, Message.candidate:
 			send_to(int(data["peer"]), data)
 
 
-func join_lobby(user_id: int) -> void:
-	lobby.addPlayer(user_id)
+func join_lobby(user_id: int, p_name: String) -> void:
+	lobby.addPlayer(user_id, p_name)
 
 	# tell every existing peer about the new one and the new one about each existing peer
 	for p in lobby.players:
-		send_to(p, { "message": Message.userConnected, "id": user_id })
-		send_to(user_id, { "message": Message.userConnected, "id": p })
+		send_to(p, { "message": Message.userConnected, "id": user_id, "name": p_name })
+		send_to(user_id, { "message": Message.userConnected, "id": p, "name": lobby.players[p].get("name", "Player") })
 		send_to(p, {
 			"message": Message.lobby,
 			"players": JSON.stringify(lobby.players),
@@ -61,6 +61,7 @@ func join_lobby(user_id: int) -> void:
 		"id": user_id,
 		"message": Message.userConnected,
 		"player": lobby.players[user_id],
+		"name": p_name,
 	})
 
 
