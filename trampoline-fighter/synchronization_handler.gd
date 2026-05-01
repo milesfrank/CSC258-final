@@ -1,6 +1,6 @@
 extends Node2D
 
-const MAX_ROLLBACK = 10
+const MAX_ROLLBACK = 20
 
 var num_players = 2
 var current_frame: int = 0
@@ -95,18 +95,21 @@ func _process(_delta: float) -> void:
 	if ready_players < num_players:
 		return
 
+	for i in range(num_players):
+		rollback_start_frames[i] = current_frame
+		var previous_input = save_states.get_player_state(current_frame - 1, i).input.duplicate()
+		save_states.set_input(current_frame, i, previous_input) # Set empty input for current frame to prevent null inputs if a player doesn't send input for a frame
+
 	var local_input = get_local_input()
 	# print(local_input)
 	save_states.set_input(current_frame, 0, local_input)
-
-	for i in range(num_players):
-		rollback_start_frames[i] = current_frame
 	
-	for player in remote_input:
+	for message in remote_input:
 		# print("[remote] f=%d from=%d input=%s" % [player[0], player[1], player[2]])
-		save_states.set_input(player[0], id_to_index[player[1]], player[2])
-		rollback_start_frames[id_to_index[player[1]]] = player[0]
-		# save_states.set_input(current_frame, id_to_index[player[1]], player[2])
+		# print(message[2])
+		if message[2] != save_states.get_player_state(message[0], id_to_index[message[1]]).input:
+			save_states.set_input(message[0], id_to_index[message[1]], message[2])
+			rollback_start_frames[id_to_index[message[1]]] = min(message[0], rollback_start_frames[id_to_index[message[1]]])
 
 	remote_input.clear()
 

@@ -141,9 +141,11 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 	
 	# Simple state machine
 	var player_state = int_to_state(player_new_frame.state)
+	current_state_frame_counter = player_new_frame.current_state_frame_counter
+
 	var next_state: State
-	if player_state != State.MOVING and player_new_frame.current_state_frame_counter < STATE_FRAMES[state]:
-		player_new_frame.current_state_frame_counter += 1
+	if player_state != State.MOVING and current_state_frame_counter < STATE_FRAMES[state]:
+		current_state_frame_counter += 1
 	else:
 		if player_state == State.ATTACKING:
 			next_state = State.ATTACK_LAG
@@ -178,6 +180,8 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 	if player_new_frame.vel.y < MAX_FALL_SPEED:
 		player_new_frame.vel += GRAVITY
 
+	player_new_frame.current_state_frame_counter = current_state_frame_counter
+
 	SynchronizationHandler.save_states.get_current_barrier(frame).cycle(player_number) 
 
 	# Attack collision. Barrier so all characters have calculated movement
@@ -185,7 +189,7 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 		if player == player_number:
 			continue
 		var other_player_frame = SynchronizationHandler.save_states.get_player_state(frame, player)
-		if int_to_state(other_player_frame.state) == State.ATTACKING and int_to_state(other_player_frame.state) != State.DODGING and not other_player_frame.hit_players.has(self ):
+		if int_to_state(other_player_frame.state) == State.ATTACKING and int_to_state(other_player_frame.state) != State.DODGING and not other_player_frame.hit_players[player_number]:
 			if player_new_frame.pos.distance_to(other_player_frame.pos) < ATTACK_RANGE:
 				player_new_frame.vel = (player_new_frame.pos - other_player_frame.pos).normalized() * KNOCKBACK_SPEED # Knockback
 				other_player_frame.hit_players[player_number] = true # Add to hit players so they can't be hit again until they leave the attack range

@@ -53,7 +53,6 @@ func _process(_delta: float) -> void:
 
 	if my_id != 0:
 		var local_input := _read_local_input()
-		# await get_tree().create_timer(0.05).timeout # Wait a short time to increase chance of receiving inputs from all peers before processing
 		submit_input.rpc(SynchronizationHandler.current_frame, local_input)
 
 func _read_local_input() -> Array[String]:
@@ -75,8 +74,6 @@ func _read_local_input() -> Array[String]:
 
 @rpc("any_peer", "call_remote", "reliable")
 func submit_input(frame: int, inputs: Array[String]) -> void:
-	if inputs.is_empty():
-		return
 	var sender := multiplayer.get_remote_sender_id()
 	#print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
 	SynchronizationHandler.remote_input.append([frame, sender, inputs])
