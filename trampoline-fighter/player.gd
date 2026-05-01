@@ -85,12 +85,14 @@ func _ready() -> void:
 
 	SynchronizationHandler.update_positions.connect(_on_update_positions)
 
-	thread.start(main_loop.bind())
+	# DEBUG: bypass sim threading while testing RPC protocol
+	#thread.start(main_loop.bind())
 
 	SynchronizationHandler.ready_players += 1
 
 func _exit_tree():
-	thread.wait_to_finish()
+	if thread.is_started():
+		thread.wait_to_finish()
 
 func main_loop() -> void:
 	print("Player ", player_number, " starting main loop")
