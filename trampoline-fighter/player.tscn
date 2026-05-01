@@ -1,11 +1,60 @@
 [gd_scene format=3 uid="uid://yt4xs4m1xx4r"]
 
-[ext_resource type="Texture2D" uid="uid://trjxc7py8u0d" path="res://icon.svg" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://bfmfqv87o2v5" path="res://player.gd" id="1_onrkg"]
+[ext_resource type="Texture2D" uid="uid://cv3iri2018co8" path="res://assets/punching.png" id="2_sweqy"]
+[ext_resource type="Texture2D" uid="uid://b8tmtys3fh3t5" path="res://assets/blocking.png" id="3_2hs0m"]
+[ext_resource type="Texture2D" uid="uid://bgsb77q6ti886" path="res://assets/crouching(floor).png" id="4_1jxqw"]
+[ext_resource type="Texture2D" uid="uid://cfamooamy62hk" path="res://assets/floating.png" id="5_2hs0m"]
+[ext_resource type="Texture2D" uid="uid://ce2i8s43apf8o" path="res://assets/standing.png" id="5_dw050"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_b26j0"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_sweqy")
+}],
+"loop": true,
+"name": &"attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_2hs0m")
+}],
+"loop": true,
+"name": &"block",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_1jxqw")
+}],
+"loop": true,
+"name": &"bounce",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_2hs0m")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_dw050")
+}],
+"loop": true,
+"name": &"move",
+"speed": 5.0
+}]
 
 [node name="Player" type="Node2D" unique_id=1892710959 groups=["player"]]
 script = ExtResource("1_onrkg")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1127698567]
-position = Vector2(0, -64)
-texture = ExtResource("1_4flbx")
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=12963482]
+scale = Vector2(0.1, 0.1)
+sprite_frames = SubResource("SpriteFrames_b26j0")
+animation = &"move"
+offset = Vector2(0, -650)
