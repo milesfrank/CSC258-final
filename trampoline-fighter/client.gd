@@ -28,6 +28,7 @@ var names := {} # peer_id -> display name
 var confirmed_leaderboard := {} # peer_id -> score
 var temp_leaderboard := {}
 var pending_peers := []
+var attested := {} # (frame, attacker_peer, victim_peer) -> true, dedupes rollback re-sims
 
 
 
@@ -67,45 +68,6 @@ func _process(_delta: float) -> void:
 		var local_input := _read_local_input()
 		submit_input.rpc(SynchronizationHandler.current_frame, local_input)
 
-		_handle_debug_input()
-
-
-func _handle_debug_input() -> void:
-	if Input.is_action_just_pressed("debug_attest_attack"):
-		var victim := _pick_other_peer()
-		if victim != 0:
-			print("[debug] %s attests I attacked %s at frame 0" % [name_of(my_id), name_of(victim)])
-			receive_vote.rpc(0, my_id, victim)
-
-	if Input.is_action_just_pressed("debug_attest_victim"):
-		var attacker := _pick_other_peer()
-		if attacker != 0:
-			print("[debug] %s attests I was hit by %s at frame 0" % [name_of(my_id), name_of(attacker)])
-			receive_vote.rpc(0, attacker, my_id)
-
-	if Input.is_action_just_pressed("debug_dump_leaderboard"):
-		print("[debug] my lb.confirmed = ", _named_dict(lb.confirmed))
-		print("[debug] my lb.pending = ", lb.pending)
-		request_all_leaderboards()
-		await get_tree().create_timer(0.5).timeout
-		print("[debug] merged confirmed_leaderboard = ", _named_dict(confirmed_leaderboard))
-
-
-func _pick_other_peer() -> int:
-	for pid in peers.keys():
-		return pid
-	return 0
-
-
-func name_of(pid: int) -> String:
-	return "%s(%d)" % [names.get(pid, "Player"), pid]
-
-
-func _named_dict(d: Dictionary) -> Dictionary:
-	var out := {}
-	for pid in d:
-		out[name_of(int(pid))] = d[pid]
-	return out
 
 func _read_local_input() -> Array[String]:
 	var input: Array[String] = []
@@ -128,12 +90,34 @@ func _read_local_input() -> Array[String]:
 
 
 
+func _on_hit_landed(frame: int, attacker_index: int, victim_index: int) -> void:
+	var attacker_peer := _peer_for_index(attacker_index)
+	var victim_peer := _peer_for_index(victim_index)
+	if attacker_peer == 0 or victim_peer == 0:
+		return
+	if my_id != attacker_peer and my_id != victim_peer:
+		return
+	var key := [frame, attacker_peer, victim_peer]
+	if attested.has(key):
+		return
+	attested[key] = true
+	receive_vote.rpc(frame, attacker_peer, victim_peer)
+
+
+func _peer_for_index(idx: int) -> int:
+	for pid in SynchronizationHandler.id_to_index:
+		if SynchronizationHandler.id_to_index[pid] == idx:
+			return pid
+	return 0
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func receive_vote(frame, attacker_peer, victim_peer):
+	print("[receive_vote] received from %d  frame=%d attacker=%d victim=%d" % [multiplayer.get_remote_sender_id(), frame, attacker_peer, victim_peer])
 	if my_id == attacker_peer or my_id == victim_peer:
 		return
 
-	var key = [frame, attacker_peer, victim_peer]
+	var key = [attacker_peer, victim_peer]
 	if !lb.pending.has(key):
 		lb.pending[key] = [false, false]
 	
@@ -192,8 +176,8 @@ func share_leaderboard():
 func submit_input(frame: int, inputs: Array[String]) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	#print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
-	# DEBUG: bypass sync handler while testing RPC protocol
-	#SynchronizationHandler.remote_input.append([frame, sender, inputs])
+	
+	SynchronizationHandler.remote_input.append([frame, sender, inputs])
 
 
 func connect_to_signal_server() -> void:
@@ -290,6 +274,7 @@ func spawn_player(peer_id: int) -> void:
 	players_parent.add_child(node)
 	spawned[peer_id] = node
 	SynchronizationHandler.id_to_index[peer_id] = node.player_number
+	node.hit_landed.connect(_on_hit_landed)
 
 	if peers.size() == SynchronizationHandler.num_players - 1:
 		SynchronizationHandler.start_game()
