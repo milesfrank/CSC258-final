@@ -10,6 +10,8 @@ var start_flag: bool = false
 var rollback_start_frames: Array[int] = []
 var ready_players: int = 0;
 var remote_input = []
+var id_to_index = {}
+
 
 class player_state:
 	var input: Array[String]
@@ -58,7 +60,8 @@ class state_buffer:
 	
 	func update_player_state(frame: int, player: int, state: player_state) -> void:
 		var frame_state = game_states[frame % MAX_ROLLBACK]
-		frame_state.players[player] = state
+		frame_state.players[player].copy_from(state)
+		# print(2.5, " ", SynchronizationHandler.current_frame, " ", frame)
 	
 	func get_player_state(frame: int, player: int) -> player_state:
 		var frame_state = game_states[frame % MAX_ROLLBACK]
@@ -75,6 +78,9 @@ func _enter_tree() -> void:
 
 	print("New game started with ", num_players, " players")
 
+	for i in range(num_players):
+		rollback_start_frames.append(0)
+
 
 signal update_positions(frame: int)
 
@@ -90,23 +96,35 @@ func _process(_delta: float) -> void:
 		return
 
 	var local_input = get_local_input()
-	print(local_input)
+	# print(local_input)
 	save_states.set_input(current_frame, 0, local_input)
+
+	for i in range(num_players):
+		rollback_start_frames[i] = current_frame
 	
 	for player in remote_input:
-		print("[remote] f=%d from=%d input=%s" % [player[0], player[1], player[2]])
-		save_states.set_input(player[0], 1, player[2])
+		# print("[remote] f=%d from=%d input=%s" % [player[0], player[1], player[2]])
+		save_states.set_input(player[0], id_to_index[player[1]], player[2])
+		rollback_start_frames[id_to_index[player[1]]] = player[0]
+		# save_states.set_input(current_frame, id_to_index[player[1]], player[2])
 
 	remote_input.clear()
+
 	#Start threads at correct frame
+	var min_rollback_frame = rollback_start_frames.min()
+	for i in range(num_players):
+		rollback_start_frames[i] = min_rollback_frame
+
+	# print(current_frame - min_rollback_frame, " frames behind")
 
 	new_frame_barrier.cycle(num_players) # Tell threads to start next frame after main thread has done setup
 
 	new_frame_barrier.cycle(num_players) # Wait for threads to finish simulating next frame before updating positions
 
-	update_positions.emit(current_frame)
-
+	# await get_tree().process_frame
+	# print(4, " ", current_frame, " ", rollback_start_frames[0])
 	current_frame += 1
+	update_positions.emit(current_frame)
 
 
 func get_local_input() -> Array[String]:
@@ -146,21 +164,19 @@ class Barrier:
 	func cycle(player_id: int) -> void:
 		var s = not local_sense[player_id]
 		local_sense[player_id] = s
-		if fai() == n:
+		lock.lock()
+		# if n == 2:
+		# 	print("Player ", player_id, " reached barrier with sense ", s)
+		count += 1
+		if count == n:
 			count = 0
 			sense = s
+			lock.unlock()
 		else:
-			# var delay = 1
-			# print("Player ", player_id, " waiting at barrier")
+			lock.unlock()
 			while sense != s:
-				# if main_thread:
-				# print(delay)
-				# OS.delay_msec(delay) # Sleep to prevent busy waiting
-				# delay = min(delay * 2, 100) # Exponential backoff with max delay
+				# OS.delay_usec(10)
 				pass
 
-	func fai() -> int:
-		lock.lock()
-		count += 1
-		lock.unlock()
-		return count
+		# if n == 2:
+		# 	print("Player ", player_id, " exited barrier with sense ", s)

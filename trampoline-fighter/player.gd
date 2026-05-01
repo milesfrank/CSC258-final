@@ -104,11 +104,28 @@ func main_loop() -> void:
 
 	while true:
 		SynchronizationHandler.new_frame_barrier.cycle(player_number) # Wait for all players to be ready for new frame
+		# SynchronizationHandler.locks[player_number].lock() # Wait for main thread to signal start of new frame
 
-		var new_frame = _simulate_tick(SynchronizationHandler.current_frame)
-		SynchronizationHandler.save_states.update_player_state(SynchronizationHandler.current_frame, player_number, new_frame)
+		var rollback_frame = SynchronizationHandler.rollback_start_frames[player_number]
 
+		while rollback_frame <= SynchronizationHandler.current_frame:
+			# print("Player ", player_number, " simulating frame ", rollback_frame, " current frame ", SynchronizationHandler.current_frame)
+			# print(1, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
+
+			var new_frame = _simulate_tick(rollback_frame)
+			# var new_frame = _simulate_tick(SynchronizationHandler.current_frame)
+
+			# print(2, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
+
+			SynchronizationHandler.save_states.update_player_state(rollback_frame+1, player_number, new_frame)
+			# SynchronizationHandler.save_states.update_player_state(SynchronizationHandler.current_frame, player_number, new_frame)
+
+			# print(3, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
+			rollback_frame += 1
+
+		# SynchronizationHandler.locks[player_number].unlock()
 		SynchronizationHandler.new_frame_barrier.cycle(player_number) 
+
 
 # func _physics_process(_delta: float) -> void:
 	# _simulate_tick()
@@ -116,13 +133,14 @@ func main_loop() -> void:
 # Called once a frame. I think we shouldn't use delta because we don't need consistent 
 # movement wrt time, just consistent for frames. 
 func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
+	# print("Simulating tick for player ", player_number, " frame ", frame, " current frame ", SynchronizationHandler.current_frame)
 	# Get appropriate player's state
 	var player_curr_frame = SynchronizationHandler.save_states.get_player_state(frame, player_number)
 	var player_new_frame = SynchronizationHandler.player_state.new()
 	player_new_frame.copy_from(player_curr_frame) # Start with current frame's state and modify for new frame
 	
 	# Simple state machine
-	var player_state = int_to_state(player_curr_frame.state)
+	var player_state = int_to_state(player_new_frame.state)
 	var next_state: State
 	if player_state != State.MOVING and player_new_frame.current_state_frame_counter < STATE_FRAMES[state]:
 		player_new_frame.current_state_frame_counter += 1
@@ -135,7 +153,7 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 			next_state = State.MOVING
 
 	# print(player_curr_frame.input)
-	handle_input(player_curr_frame.input)
+	handle_input(player_new_frame.input)
 	
 	if dodge_buffered and next_state == State.MOVING:
 		next_state = State.DODGING
@@ -163,7 +181,6 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 	SynchronizationHandler.save_states.get_current_barrier(frame).cycle(player_number) 
 
 	# Attack collision. Barrier so all characters have calculated movement
-	# FIX TO MAKE IT SO I ONLY ADD PEOPLE I HIT TO MY LIST
 	for player in range(SynchronizationHandler.num_players):
 		if player == player_number:
 			continue
@@ -225,6 +242,7 @@ func handle_input(inputs: Array[String]) -> void:
 
 
 func _on_update_positions(frame: int) -> void:
+	# print(3.5, " ", SynchronizationHandler.current_frame, " ", frame)
 	var new_frame_state = SynchronizationHandler.save_states.get_player_state(frame, player_number)
 	# print("Updating position for player ", player_number, " to ", new_frame_state.pos)
 	position = new_frame_state.pos

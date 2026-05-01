@@ -22,7 +22,6 @@ var peers := {} # peer_id -> WebRTCPeerConnection
 var spawned := {} # peer_id -> Node2D
 
 var my_id := 0
-var current_frame: int = 0
 
 @onready var players_parent: Node2D = get_node("../Players")
 
@@ -35,8 +34,8 @@ func _ready() -> void:
 func _on_rtc_peer_connected(peer_id: int) -> void:
 	print("rtc peer connected ", peer_id)
 
-	if peers.size() == SynchronizationHandler.num_players - 1:
-		SynchronizationHandler.start_game()
+	# if peers.size() == SynchronizationHandler.num_players - 1:
+	# 	SynchronizationHandler.start_game()
 
 func _on_rtc_peer_disconnected(peer_id: int) -> void:
 	print("rtc peer disconnected ", peer_id)
@@ -53,12 +52,12 @@ func _process(_delta: float) -> void:
 		handle_message(data)
 
 	if my_id != 0:
-		current_frame += 1
 		var local_input := _read_local_input()
-		submit_input.rpc(current_frame, local_input)
+		# await get_tree().create_timer(0.05).timeout # Wait a short time to increase chance of receiving inputs from all peers before processing
+		submit_input.rpc(SynchronizationHandler.current_frame, local_input)
 
-func _read_local_input() -> Array:
-	var input: Array = []
+func _read_local_input() -> Array[String]:
+	var input: Array[String] = []
 	if Input.is_action_pressed("ui_left"):
 		input.append("ui_left")
 	elif Input.is_action_pressed("ui_right"):
@@ -172,6 +171,10 @@ func spawn_player(peer_id: int) -> void:
 	node.position = spawn_position_for(peer_id)
 	players_parent.add_child(node)
 	spawned[peer_id] = node
+	SynchronizationHandler.id_to_index[peer_id] = node.player_number
+
+	if peers.size() == SynchronizationHandler.num_players - 1:
+		SynchronizationHandler.start_game()
 
 
 func despawn_player(peer_id: int) -> void:
