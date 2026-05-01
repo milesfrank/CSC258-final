@@ -63,7 +63,6 @@ debug_dump_leaderboard={
 
 [physics]
 
-2d/run_on_separate_thread=true
 3d/physics_engine="Jolt Physics"
 
 [rendering]

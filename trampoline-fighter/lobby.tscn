@@ -16,6 +16,13 @@ position = Vector2(0, 500)
 scale = Vector2(12, 0.2)
 texture = ExtResource("4")
 
+[node name="ColorRect" type="ColorRect" parent="Platform" unique_id=357134327]
+offset_left = -64.5
+offset_top = -60.0
+offset_right = 63.75
+offset_bottom = 90.0
+color = Color(0, 0, 0, 1)
+
 [node name="Players" type="Node2D" parent="." unique_id=1173798052]
 
 [node name="Server" type="Node" parent="." unique_id=1472080757]

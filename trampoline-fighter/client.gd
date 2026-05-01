@@ -46,9 +46,8 @@ func _ready() -> void:
 func _on_rtc_peer_connected(peer_id: int) -> void:
 	print("rtc peer connected ", peer_id)
 
-	# DEBUG: bypass sync handler while testing RPC protocol
-	#if peers.size() == SynchronizationHandler.num_players - 1:
-	#	SynchronizationHandler.start_game()
+	# if peers.size() == SynchronizationHandler.num_players - 1:
+	# 	SynchronizationHandler.start_game()
 
 func _on_rtc_peer_disconnected(peer_id: int) -> void:
 	print("rtc peer disconnected ", peer_id)
@@ -65,9 +64,8 @@ func _process(_delta: float) -> void:
 		handle_message(data)
 
 	if my_id != 0:
-		current_frame += 1
 		var local_input := _read_local_input()
-		submit_input.rpc(current_frame, local_input)
+		submit_input.rpc(SynchronizationHandler.current_frame, local_input)
 
 		_handle_debug_input()
 
@@ -113,16 +111,19 @@ func _read_local_input() -> Array[String]:
 	var input: Array[String] = []
 	if Input.is_action_pressed("ui_left"):
 		input.append("ui_left")
-	elif Input.is_action_pressed("ui_right"):
+	if Input.is_action_pressed("ui_right"):
 		input.append("ui_right")
-	if Input.is_action_pressed("ui_up"):
+
+	if Input.is_action_pressed("ui_up"): # Jump
 		input.append("ui_up")
-	if Input.is_action_pressed("ui_down"):
+	if Input.is_action_pressed("ui_down"): # Fast fall
 		input.append("ui_down")
+	
 	if Input.is_action_just_pressed("attack"):
 		input.append("attack")
 	if Input.is_action_just_pressed("dodge"):
 		input.append("dodge")
+
 	return input
 
 
@@ -189,8 +190,6 @@ func share_leaderboard():
 
 @rpc("any_peer", "call_remote", "reliable")
 func submit_input(frame: int, inputs: Array[String]) -> void:
-	if inputs.is_empty():
-		return
 	var sender := multiplayer.get_remote_sender_id()
 	#print("[recv] f=%d from=%d input=%s" % [frame, sender, inputs])
 	# DEBUG: bypass sync handler while testing RPC protocol
@@ -290,6 +289,10 @@ func spawn_player(peer_id: int) -> void:
 	node.position = spawn_position_for(peer_id)
 	players_parent.add_child(node)
 	spawned[peer_id] = node
+	SynchronizationHandler.id_to_index[peer_id] = node.player_number
+
+	if peers.size() == SynchronizationHandler.num_players - 1:
+		SynchronizationHandler.start_game()
 
 
 func despawn_player(peer_id: int) -> void:
