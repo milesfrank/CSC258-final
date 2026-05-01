@@ -12,6 +12,9 @@ var ready_players: int = 0;
 var remote_input = []
 var id_to_index = {}
 
+var number_of_conflicts: int = 0
+var number_of_rollbacks: int = 0
+var total_rollback_frames: float = 0
 
 class player_state:
 	var input: Array[String]
@@ -57,6 +60,9 @@ class state_buffer:
 
 	func get_current_barrier(frame: int) -> Barrier:
 		return barriers[frame % MAX_ROLLBACK]
+
+	func set_barrier(frame: int, barrier: Barrier) -> void:
+		barriers[frame % MAX_ROLLBACK] = barrier
 	
 	func update_player_state(frame: int, player: int, state: player_state) -> void:
 		var frame_state = game_states[frame % MAX_ROLLBACK]
@@ -101,31 +107,52 @@ func _process(_delta: float) -> void:
 		save_states.set_input(current_frame, i, previous_input) # Set empty input for current frame to prevent null inputs if a player doesn't send input for a frame
 
 	var local_input = get_local_input()
-	# print(local_input)
 	save_states.set_input(current_frame, 0, local_input)
 	
+	# Receive remote input and find possible conflicts
 	for message in remote_input:
-		# print("[remote] f=%d from=%d input=%s" % [player[0], player[1], player[2]])
-		# print(message[2])
-		if message[2] != save_states.get_player_state(message[0], id_to_index[message[1]]).input:
-			save_states.set_input(message[0], id_to_index[message[1]], message[2])
-			rollback_start_frames[id_to_index[message[1]]] = min(message[0], rollback_start_frames[id_to_index[message[1]]])
+		var frame = message[0]
+		var player_number = id_to_index[message[1]]
+		var input = message[2]
+
+		if input != save_states.get_player_state(frame, player_number).input: # Check if the received input is different from our prediction
+			save_states.set_input(frame, player_number, input)
+			rollback_start_frames[player_number] = min(frame, rollback_start_frames[player_number])
+			
+			number_of_rollbacks += 1
+			total_rollback_frames += current_frame - frame
+
+			var state = save_states.get_player_state(frame, player_number).state # Find conflicts with other players
+			if input.has("attack") or (not input.has("dodge") and state == 1):
+				for i in range(num_players):
+					if i != player_number:
+						var f = frame
+						var other_state = save_states.get_player_state(f, i).state
+						while f < current_frame and other_state == 2:
+							f += 1
+						rollback_start_frames[i] = min(f, rollback_start_frames[i])
+
+						if f < current_frame:
+							number_of_conflicts += 1
+
+	# Set barriers so only rewinding threads stop at the barrier
+	var min_rollback_frame = rollback_start_frames.min()
+	var num_at_barrier = 0
+	for i in range(min_rollback_frame, current_frame+1):
+		num_at_barrier += rollback_start_frames.count(i)
+		save_states.set_barrier(i, Barrier.new(num_at_barrier))
+
+	var average_rollback_frames = total_rollback_frames/number_of_rollbacks
+	print("Number of rollbacks: ", number_of_rollbacks, " Average rollback frames: ", average_rollback_frames, " Number of conflicts: ", number_of_conflicts)
+
+	# print(rollback_start_frames[0] - current_frame, " ", rollback_start_frames[1] - current_frame)
 
 	remote_input.clear()
-
-	#Start threads at correct frame
-	var min_rollback_frame = rollback_start_frames.min()
-	for i in range(num_players):
-		rollback_start_frames[i] = min_rollback_frame
-
-	# print(current_frame - min_rollback_frame, " frames behind")
 
 	new_frame_barrier.cycle(num_players) # Tell threads to start next frame after main thread has done setup
 
 	new_frame_barrier.cycle(num_players) # Wait for threads to finish simulating next frame before updating positions
 
-	# await get_tree().process_frame
-	# print(4, " ", current_frame, " ", rollback_start_frames[0])
 	current_frame += 1
 	update_positions.emit(current_frame)
 

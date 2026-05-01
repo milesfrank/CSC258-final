@@ -105,36 +105,20 @@ func main_loop() -> void:
 
 	while true:
 		SynchronizationHandler.new_frame_barrier.cycle(player_number) # Wait for all players to be ready for new frame
-		# SynchronizationHandler.locks[player_number].lock() # Wait for main thread to signal start of new frame
 
 		var rollback_frame = SynchronizationHandler.rollback_start_frames[player_number]
 
 		while rollback_frame <= SynchronizationHandler.current_frame:
-			# print("Player ", player_number, " simulating frame ", rollback_frame, " current frame ", SynchronizationHandler.current_frame)
-			# print(1, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
-
 			var new_frame = _simulate_tick(rollback_frame)
-			# var new_frame = _simulate_tick(SynchronizationHandler.current_frame)
-
-			# print(2, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
 
 			SynchronizationHandler.save_states.update_player_state(rollback_frame+1, player_number, new_frame)
-			# SynchronizationHandler.save_states.update_player_state(SynchronizationHandler.current_frame, player_number, new_frame)
 
-			# print(3, " ", SynchronizationHandler.current_frame, " ", rollback_frame)
 			rollback_frame += 1
 
-		# SynchronizationHandler.locks[player_number].unlock()
-		SynchronizationHandler.new_frame_barrier.cycle(player_number) 
+		SynchronizationHandler.new_frame_barrier.cycle(player_number) # Tell the main thread it is ready to render
 
 
-# func _physics_process(_delta: float) -> void:
-	# _simulate_tick()
-
-# Called once a frame. I think we shouldn't use delta because we don't need consistent 
-# movement wrt time, just consistent for frames. 
 func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
-	# print("Simulating tick for player ", player_number, " frame ", frame, " current frame ", SynchronizationHandler.current_frame)
 	# Get appropriate player's state
 	var player_curr_frame = SynchronizationHandler.save_states.get_player_state(frame, player_number)
 	var player_new_frame = SynchronizationHandler.player_state.new()
@@ -155,9 +139,10 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 		elif player_state in [State.ATTACK_LAG, State.DODGE_LAG, State.HIT_STUN]:
 			next_state = State.MOVING
 
-	# print(player_curr_frame.input)
+	# Convert input to game logic
 	handle_input(player_new_frame.input)
 	
+	# Calculate new movement
 	if dodge_buffered and next_state == State.MOVING:
 		next_state = State.DODGING
 		player_new_frame.vel.x = movement_direction_x * DODGE_SPEED
@@ -230,7 +215,6 @@ func _simulate_tick(frame: int) -> SynchronizationHandler.player_state:
 func handle_input(inputs: Array[String]) -> void:
 	movement_direction_x = 0
 	for input in inputs:
-		# print(input)
 		match input:
 			"ui_left":
 				movement_direction_x -= 1
@@ -247,7 +231,6 @@ func handle_input(inputs: Array[String]) -> void:
 
 
 func _on_update_positions(frame: int) -> void:
-	# print(3.5, " ", SynchronizationHandler.current_frame, " ", frame)
 	var new_frame_state = SynchronizationHandler.save_states.get_player_state(frame, player_number)
 	if new_frame_state.vel.x < 0:
 		sprite.flip_h = true
@@ -262,5 +245,4 @@ func _on_update_positions(frame: int) -> void:
 		State.DODGING:
 			sprite.play("block")
 
-	# print("Updating position for player ", player_number, " to ", new_frame_state.pos)
 	position = new_frame_state.pos
