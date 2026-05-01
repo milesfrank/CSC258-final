@@ -59,16 +59,19 @@ func _read_local_input() -> Array[String]:
 	var input: Array[String] = []
 	if Input.is_action_pressed("ui_left"):
 		input.append("ui_left")
-	elif Input.is_action_pressed("ui_right"):
+	if Input.is_action_pressed("ui_right"):
 		input.append("ui_right")
-	if Input.is_action_pressed("ui_up"):
+
+	if Input.is_action_pressed("ui_up"): # Jump
 		input.append("ui_up")
-	if Input.is_action_pressed("ui_down"):
+	if Input.is_action_pressed("ui_down"): # Fast fall
 		input.append("ui_down")
+	
 	if Input.is_action_just_pressed("attack"):
 		input.append("attack")
 	if Input.is_action_just_pressed("dodge"):
 		input.append("dodge")
+
 	return input
 
 

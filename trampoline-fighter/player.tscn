@@ -54,7 +54,7 @@ animations = [{
 script = ExtResource("1_onrkg")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=12963482]
-scale = Vector2(0.1, 0.1)
+scale = Vector2(0.2, 0.2)
 sprite_frames = SubResource("SpriteFrames_b26j0")
 animation = &"move"
 offset = Vector2(0, -650)

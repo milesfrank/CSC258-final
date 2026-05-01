@@ -73,6 +73,7 @@ func state_to_int(s: State) -> int:
 @onready var trampoline = get_tree().get_first_node_in_group("trampoline")
 @onready var trampoline_top = trampoline.position.y - 26
 @onready var starting_position = position
+@onready var sprite = $AnimatedSprite2D
 
 @export var local_player: bool = false
 @export var player_number: int = 0
@@ -248,5 +249,18 @@ func handle_input(inputs: Array[String]) -> void:
 func _on_update_positions(frame: int) -> void:
 	# print(3.5, " ", SynchronizationHandler.current_frame, " ", frame)
 	var new_frame_state = SynchronizationHandler.save_states.get_player_state(frame, player_number)
+	if new_frame_state.vel.x < 0:
+		sprite.flip_h = true
+	elif new_frame_state.vel.x > 0:
+		sprite.flip_h = false
+
+	match int_to_state(new_frame_state.state):
+		State.MOVING:
+			sprite.play("move")
+		State.ATTACKING:
+			sprite.play("attack")
+		State.DODGING:
+			sprite.play("block")
+
 	# print("Updating position for player ", player_number, " to ", new_frame_state.pos)
 	position = new_frame_state.pos
